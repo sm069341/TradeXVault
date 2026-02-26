@@ -21,6 +21,14 @@ let selectedPL = null; // "profit" | "loss"
 let selectedSide = "short"; // default like screenshot
 let unsubscribe = null;
 
+let allTrades = [];
+
+const filters = {
+  pnl: "all", // all | profit | loss
+  type: "all", // all | long | short
+  time: "all", // all | today | week | month | lastMonth | 3m
+};
+
 function money(n) {
   const num = Number(n || 0);
   const sign = num >= 0 ? "" : "-";
@@ -136,6 +144,125 @@ function calcPnlAndEquityBefore() {
   return { pnlSigned, eqBefore, eqAfter, amt };
 }
 
+function getCloseDate(t) {
+  const cand = t.closedAt || t.exitDate || t.createdAt;
+  if (cand && typeof cand.toDate === "function") return cand.toDate(); // Firestore Timestamp
+  if (typeof cand === "string") {
+    const d = new Date(cand);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function startOfWeek(d) {
+  const x = new Date(d);
+  const day = (x.getDay() + 6) % 7; // Mon=0
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+}
+
+function isSameDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function inRange(date, from, to) {
+  const t = date.getTime();
+  return t >= from.getTime() && t <= to.getTime();
+}
+
+function applyFilters(trades) {
+  const term = ($("searchInput")?.value || "").trim().toLowerCase();
+  const now = new Date();
+
+  let out = trades.slice();
+
+  // Search
+  if (term) {
+    out = out.filter(
+      (t) =>
+        (t.symbol || "").toLowerCase().includes(term) ||
+        (t.side || "").toLowerCase().includes(term),
+    );
+  }
+
+  // PnL
+  if (filters.pnl === "profit") out = out.filter((t) => Number(t.pnl || 0) > 0);
+  if (filters.pnl === "loss") out = out.filter((t) => Number(t.pnl || 0) < 0);
+
+  // Type
+  if (filters.type === "long")
+    out = out.filter((t) => (t.side || "").toLowerCase() === "long");
+  if (filters.type === "short")
+    out = out.filter((t) => (t.side || "").toLowerCase() === "short");
+
+  // Time
+  if (filters.time !== "all") {
+    out = out.filter((t) => {
+      const d = getCloseDate(t);
+      if (!d) return false;
+
+      if (filters.time === "today") return isSameDay(d, now);
+
+      if (filters.time === "week") {
+        const s = startOfWeek(now);
+        const e = new Date(s);
+        e.setDate(e.getDate() + 7);
+        return d >= s && d < e;
+      }
+
+      if (filters.time === "month") {
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth()
+        );
+      }
+
+      if (filters.time === "lastMonth") {
+        const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return (
+          d.getFullYear() === lm.getFullYear() && d.getMonth() === lm.getMonth()
+        );
+      }
+
+      if (filters.time === "3m") {
+        const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        const to = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+        );
+        return inRange(d, from, to);
+      }
+
+      return true;
+    });
+  }
+
+  return out;
+}
+
+function refreshCounters() {
+  const profit = allTrades.filter((t) => Number(t.pnl || 0) > 0).length;
+  const loss = allTrades.filter((t) => Number(t.pnl || 0) < 0).length;
+  const cp = document.getElementById("cntProfit");
+  const cl = document.getElementById("cntLoss");
+  if (cp) cp.textContent = `(${profit})`;
+  if (cl) cl.textContent = `(${loss})`;
+}
+
+function applyAndRender() {
+  const filtered = applyFilters(allTrades);
+  renderRows(filtered, ""); // renderRows already supports empty table UI
+}
+
 function renderRows(trades, searchTerm = "") {
   const tbody = $("tbody");
   const term = (searchTerm || "").trim().toLowerCase();
@@ -204,8 +331,9 @@ function watchTrades(uid) {
     const trades = [];
     snap.forEach((d) => trades.push({ id: d.id, ...d.data() }));
 
-    const term = $("searchInput").value || "";
-    renderRows(trades, term);
+    allTrades = trades;
+    refreshCounters();
+    applyAndRender();
   });
 }
 
@@ -221,18 +349,86 @@ function wireUI() {
 
   // Placeholders
   const notReady = (page) => alert(`${page} UI later ✅`);
-  $("goAnalysisBtn").addEventListener("click", () => window.location.href = "analysis.html");
-  $("bnAnalysis").addEventListener("click", () => window.location.href = "analysis.html");
-  $("filtersBtn").addEventListener("click", () => alert("Filters UI next ✅"));
+  $("goAnalysisBtn").addEventListener(
+    "click",
+    () => (window.location.href = "analysis.html"),
+  );
+  $("bnAnalysis").addEventListener(
+    "click",
+    () => (window.location.href = "analysis.html"),
+  );
+  $("filtersBtn").addEventListener("click", () => {
+    const panel = $("filtersPanel");
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+  });
+
+  // PnL chips
+  $("pnlChips")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fchip");
+    if (!btn) return;
+    filters.pnl = btn.dataset.pnl || "all";
+    document
+      .querySelectorAll("#pnlChips .fchip")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyAndRender();
+  });
+
+  // Type chips
+  $("typeChips")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fchip");
+    if (!btn) return;
+    filters.type = btn.dataset.type || "all";
+    document
+      .querySelectorAll("#typeChips .fchip")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyAndRender();
+  });
+
+  // Time chips
+  $("timeChipsTrades")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fchip");
+    if (!btn) return;
+    filters.time = btn.dataset.time || "all";
+
+    document
+      .querySelectorAll("#timeChipsTrades .fchip")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    const cr = $("customRange");
+    if (cr) cr.hidden = filters.time !== "custom";
+
+    applyAndRender();
+  });
+
+  // Clear all
+  $("clearAllFiltersBtn")?.addEventListener("click", () => {
+    filters.pnl = "all";
+    filters.type = "all";
+    filters.time = "all";
+
+    document
+      .querySelectorAll(".filters-panel .fchip")
+      .forEach((b) => b.classList.remove("active"));
+    document
+      .querySelector('#pnlChips .fchip[data-pnl="all"]')
+      ?.classList.add("active");
+    document
+      .querySelector('#typeChips .fchip[data-type="all"]')
+      ?.classList.add("active");
+    document
+      .querySelector('#timeChipsTrades .fchip[data-time="all"]')
+      ?.classList.add("active");
+
+    $("searchInput").value = "";
+    applyAndRender();
+  });
 
   // Search
-  $("searchInput").addEventListener("input", () => {
-    // It re-renders automatically via renderRows called from snapshot,
-    // but for instant filtering without snapshot change, we trigger a re-render:
-    // easiest: just re-watch? no — instead keep last state by storing rows in DOM.
-    // We'll do simple: refresh page memory by calling watchTrades again (cheap).
-    if (currentUser) watchTrades(currentUser.uid);
-  });
+  $("searchInput").addEventListener("input", applyAndRender);
 
   // Logout
   $("logoutBtn").addEventListener("click", async () => {
@@ -274,14 +470,6 @@ function wireUI() {
     });
   });
 
-  // Checklist accordion
-  $("checkToggle").addEventListener("click", () => {
-    const panel = $("checklist");
-    const ico = $("accIco");
-
-    panel.hidden = !panel.hidden; // toggle
-    ico.textContent = panel.hidden ? "›" : "⌄";
-  });
 
   // Live pnl calc
   ["pnlAmount", "eqAfter"].forEach((id) => {
@@ -293,104 +481,106 @@ function wireUI() {
 
   // Save trade
   $("tradeForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!currentUser) return;
+    e.preventDefault();
+    if (!currentUser) return;
 
-  if (!selectedPL) {
-    setMsg("Select Profit or Loss first.", "err");
-    return;
-  }
+    if (!selectedPL) {
+      setMsg("Select Profit or Loss first.", "err");
+      return;
+    }
 
-  const symbol = $("symbol").value.trim().toUpperCase();
-  const qty = Number($("qty").value || 0);
-  const entryPrice = Number($("entryPrice").value || 0);
-  const exitPrice = Number($("exitPrice").value || 0);
-  const entryDate = $("entryDate").value;
-  const exitDate = $("exitDate").value;
-  const session = $("session").value;
+    const symbol = $("symbol").value.trim().toUpperCase();
+    const qty = Number($("qty").value || 0);
+    const entryPrice = Number($("entryPrice").value || 0);
+    const exitPrice = Number($("exitPrice").value || 0);
+    const entryDate = $("entryDate").value;
+    const exitDate = $("exitDate").value;
+    const session = $("session").value;
 
-  const amount = Number($("pnlAmount").value || 0);
-  const eqAfterVal = Number($("eqAfter").value || 0);
+    const amount = Number($("pnlAmount").value || 0);
+    const eqAfterVal = Number($("eqAfter").value || 0);
 
-  if (!symbol || !qty || !entryPrice || !exitPrice || !entryDate || !exitDate) {
-    setMsg("Please fill all required fields.", "err");
-    return;
-  }
+    if (
+      !symbol ||
+      !qty ||
+      !entryPrice ||
+      !exitPrice ||
+      !entryDate ||
+      !exitDate
+    ) {
+      setMsg("Please fill all required fields.", "err");
+      return;
+    }
 
-  if (!session) {
-    setMsg("Please select a session.", "err");
-    return;
-  }
+    if (!session) {
+      setMsg("Please select a session.", "err");
+      return;
+    }
 
-  if (!amount || amount <= 0) {
-    setMsg("Enter a valid P/L amount.", "err");
-    return;
-  }
+    if (!amount || amount <= 0) {
+      setMsg("Enter a valid P/L amount.", "err");
+      return;
+    }
 
-  if (!eqAfterVal || eqAfterVal <= 0) {
-    setMsg("Enter a valid Equity After.", "err");
-    return;
-  }
+    if (!eqAfterVal || eqAfterVal <= 0) {
+      setMsg("Enter a valid Equity After.", "err");
+      return;
+    }
 
-  // ✅ Correct destructuring
-  const { pnlSigned, eqBefore, eqAfter } = calcPnlAndEquityBefore();
+    // ✅ Correct destructuring
+    const { pnlSigned, eqBefore, eqAfter } = calcPnlAndEquityBefore();
 
-  if (selectedPL === "profit" && pnlSigned <= 0) {
-    setMsg("You selected Profit but amount is not positive.", "err");
-    return;
-  }
+    if (selectedPL === "profit" && pnlSigned <= 0) {
+      setMsg("You selected Profit but amount is not positive.", "err");
+      return;
+    }
 
-  if (selectedPL === "loss" && pnlSigned >= 0) {
-    setMsg("You selected Loss but amount is not negative.", "err");
-    return;
-  }
+    if (selectedPL === "loss" && pnlSigned >= 0) {
+      setMsg("You selected Loss but amount is not negative.", "err");
+      return;
+    }
 
-  const checklist = Array.from(
-    document.querySelectorAll('#checklist input[type="checkbox"]:checked')
-  ).map((i) => i.value);
+    const notes = $("notes").value.trim();
 
-  const notes = $("notes").value.trim();
+    const closedAt = Timestamp.fromDate(ymdToDateAtNoon(exitDate));
+    const openedAt = Timestamp.fromDate(ymdToDateAtNoon(entryDate));
 
-  const closedAt = Timestamp.fromDate(ymdToDateAtNoon(exitDate));
-  const openedAt = Timestamp.fromDate(ymdToDateAtNoon(entryDate));
+    const payload = {
+      status: "closed",
+      result: selectedPL,
+      side: selectedSide,
+      symbol,
+      qty,
+      entryPrice,
+      exitPrice,
+      entryDate,
+      exitDate,
+      openedAt,
+      closedAt,
+      session,
+      pnl: pnlSigned,
+      equityAfter: eqAfter,
+      equityBefore: eqBefore,
+      notes,
+      createdAt: serverTimestamp(),
+    };
 
-  const payload = {
-    status: "closed",
-    result: selectedPL,
-    side: selectedSide,
-    symbol,
-    qty,
-    entryPrice,
-    exitPrice,
-    entryDate,
-    exitDate,
-    openedAt,
-    closedAt,
-    session,
-    pnl: pnlSigned,
-    equityAfter: eqAfter,
-    equityBefore: eqBefore,
-    checklist,
-    notes,
-    createdAt: serverTimestamp(),
-  };
+    const saveBtn = $("saveBtn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
 
-  const saveBtn = $("saveBtn");
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Saving...";
-
-  try {
-    await addDoc(collection(db, "users", currentUser.uid, "trades"), payload);
-    setMsg("Trade saved ✅", "ok");
-    setTimeout(closeModal, 450);
-  } catch (err) {
-    console.error(err);
-    setMsg("Failed to save trade. Check Firestore rules.", "err");
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "Save Trade";
-  }
-});
+    try {
+      await addDoc(collection(db, "users", currentUser.uid, "trades"), payload);
+      setMsg("Trade saved ✅", "ok");
+      setTimeout(closeModal, 450);
+    } catch (err) {
+      console.error(err);
+      setMsg("Failed to save trade. Check Firestore rules.", "err");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Trade";
+    }
+  });
 }
 
 // Auth guard + init
