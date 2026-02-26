@@ -114,6 +114,47 @@
           </div>
         </div>
 
+        <!-- Filters Panel (hidden by default) -->
+        <div class="filters-panel" id="filtersPanel" hidden>
+        
+          <div class="filters-grid">
+            <div class="filter-group">
+              <div class="filter-label">P&amp;L</div>
+              <div class="chip-row" id="pnlChips">
+                <button class="fchip active" type="button" data-pnl="all">All</button>
+                <button class="fchip" type="button" data-pnl="profit">Profitable <span class="cnt"
+                    id="cntProfit">(0)</span></button>
+                <button class="fchip" type="button" data-pnl="loss">Loss <span class="cnt" id="cntLoss">(0)</span></button>
+              </div>
+            </div>
+        
+            <div class="filter-group">
+              <div class="filter-label">TYPE</div>
+              <div class="chip-row" id="typeChips">
+                <button class="fchip active" type="button" data-type="all">All</button>
+                <button class="fchip" type="button" data-type="long">↗ Long</button>
+                <button class="fchip" type="button" data-type="short">↘ Short</button>
+              </div>
+            </div>
+        
+            <div class="filter-group wide">
+              <div class="filter-label">TIME PERIOD</div>
+              <div class="chip-row" id="timeChipsTrades">
+                <button class="fchip active" type="button" data-time="all">All Time</button>
+                <button class="fchip" type="button" data-time="today">Today</button>
+                <button class="fchip" type="button" data-time="week">This Week</button>
+                <button class="fchip" type="button" data-time="month">This Month</button>
+                <button class="fchip" type="button" data-time="lastMonth">Last Month</button>
+                <button class="fchip" type="button" data-time="3m">Last 3 Months</button>
+              </div>
+            </div>
+          </div>
+    
+    <div class="filters-footer">
+      <button class="ghost-btn" type="button" id="clearAllFiltersBtn">✕ Clear All Filters</button>
+    </div>
+    </div>
+
         <div class="table-wrap">
           <table class="table">
             <thead>
@@ -253,21 +294,6 @@
               <div class="calc-pill" id="calcEqBefore">$0.00</div>
             </div>
           </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <button class="accordion" type="button" id="checkToggle">
-          <span>Pre-Trade Checklist (Optional)</span>
-          <span class="acc-ico" id="accIco">›</span>
-        </button>
-
-        <div class="checklist" id="checklist" hidden>
-          <label class="check"><input type="checkbox" value="Checked higher timeframe"> Checked higher timeframe</label>
-          <label class="check"><input type="checkbox" value="Risk within limits"> Risk within limits</label>
-          <label class="check"><input type="checkbox" value="Fits my trading plan"> Fits my trading plan</label>
-          <label class="check"><input type="checkbox" value="Key levels identified"> Key levels identified</label>
-          <label class="check"><input type="checkbox" value="Economic calendar checked"> Economic calendar checked</label>
         </div>
 
         <div class="divider"></div>
