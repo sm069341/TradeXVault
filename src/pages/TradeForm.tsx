@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { useAuthState } from "../hooks/useAuthState";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Sparkles, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Sparkles, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle  } from "lucide-react";
 
 export default function TradeForm() {
   const { user } = useAuthState();
@@ -21,6 +21,12 @@ export default function TradeForm() {
   const [equityAfter, setEquityAfter] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
+  const [pnlPulseKey, setPnlPulseKey] = useState(0);
+
+  useEffect(() => {
+    // pulse only for WIN/LOSS (not BE)
+    if (result === "WIN" || result === "LOSS") setPnlPulseKey((k) => k + 1);
+  }, [result]);
 
   // ✅ new states
   const [saving, setSaving] = useState(false);
@@ -165,7 +171,7 @@ export default function TradeForm() {
                     onClick={() => setSide("LONG")}
                     disabled={saving}
                     className={[
-                      "group relative flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold",
+                      "group relative flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold",
                       "transition-all duration-300 ease-out",
                       side === "LONG"
                         ? "bg-emerald-600/15 text-emerald-200 border border-emerald-500/35"
@@ -199,7 +205,7 @@ export default function TradeForm() {
                     onClick={() => setSide("SHORT")}
                     disabled={saving}
                     className={[
-                      "group relative flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold",
+                      "group relative flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold",
                       "transition-all duration-300 ease-out",
                       side === "SHORT"
                         ? "bg-rose-600/15 text-rose-200 border border-rose-500/35"
@@ -314,7 +320,7 @@ export default function TradeForm() {
                           "rounded-2xl px-4 py-2 text-sm font-semibold transition",
                           result === r
                             ? r === "WIN"
-                              ? "bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-[0_0_20px_rgba(37,99,235,0.35)]"
+                              ? "bg-emerald-600/25 text-emerald-300 border border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
                               : r === "LOSS"
                                 ? "bg-rose-600/20 text-rose-300 border border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.25)]"
                                 : "bg-slate-600/30 text-slate-200 border border-slate-400/40"
@@ -327,14 +333,67 @@ export default function TradeForm() {
                     ))}
                   </div>
 
-                  <input
-                    type="number"
-                    placeholder="Enter PnL"
-                    value={pnl}
-                    onChange={(e) => setPnl(e.target.value)}
-                    className={["mt-3", inputCls].join(" ")}
-                    disabled={saving}
-                  />
+                  <div
+                    key={pnlPulseKey}
+                    className={[
+                      "mt-3 relative",
+                      result === "WIN"
+                        ? "animate-[pnlPulseGreen_.45s_ease-out]"
+                        : result === "LOSS"
+                          ? "animate-[pnlPulseRed_.45s_ease-out]"
+                          : "",
+                    ].join(" ")}
+                  >
+                    {/* $ icon */}
+                    <span
+                      className={[
+                        "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2",
+                        "transition-colors duration-300",
+                        result === "WIN"
+                          ? "text-emerald-300"
+                          : result === "LOSS"
+                            ? "text-rose-300"
+                            : "text-zinc-500",
+                      ].join(" ")}
+                    >
+                      <DollarSign size={18} strokeWidth={2.6} />
+                    </span>
+
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="decimal"
+                      placeholder="Enter PnL"
+                      value={pnl}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const clean = value.replace("-", "");
+                        setPnl(clean);
+                      }}
+                      className={[
+                        "w-full rounded-2xl px-4 py-3 pl-10 pr-10 text-sm outline-none transition-all duration-300 ease-out",
+                        "bg-zinc-900/60",
+                        result === "WIN"
+                          ? "text-emerald-200 border border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.12)]"
+                          : result === "LOSS"
+                            ? "text-rose-200 border border-rose-500/40 focus:ring-2 focus:ring-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
+                            : "text-zinc-200 border border-zinc-700 focus:ring-2 focus:ring-zinc-600/40",
+                      ].join(" ")}
+                    />
+
+                    {/* Animated check icon for WIN */}
+                    <span
+                      className={[
+                        "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2",
+                        "transition-all duration-300",
+                        result === "WIN"
+                          ? "opacity-100 scale-100 text-emerald-300"
+                          : "opacity-0 scale-90 text-zinc-600",
+                      ].join(" ")}
+                    >
+                      <CheckCircle size={18} strokeWidth={2.6} />
+                    </span>
+                  </div>
                 </Field>
 
                 <Field label="EQUITY AFTER TRADE" className="md:col-span-2">

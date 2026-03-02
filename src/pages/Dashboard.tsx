@@ -687,7 +687,7 @@ function MonthlyCalendar({
   // ---- styles (exact squares) ----
   const cellBase =
     "aspect-square rounded-md border border-white/10 bg-black/20 hover:bg-white/5 transition";
-  const cellInner = "relative h-full w-full p-1 sm:p-3";
+  const cellInner = "relative h-full w-full p-0.5 sm:p-3";
 
   return (
     <div className="mt-4">
@@ -710,7 +710,7 @@ function MonthlyCalendar({
       </div>
 
       {/* week day labels + Weekly label */}
-      <div className="mt-4 grid grid-cols-8 gap-px text-[10px] sm:text-xs font-semibold text-zinc-500">
+      <div className="mt-4 grid grid-cols-8 gap-px text-[9px] sm:text-xs font-bold text-zinc-500">
         {days.map((d) => (
           <div key={d} className="text-center">
             {d}
@@ -750,7 +750,7 @@ function MonthlyCalendar({
                       className={`${cellBase} ${ring} ${!d ? "opacity-40" : ""} min-w-0`}
                     >
                       <div className={cellInner}>
-                        <div className="absolute left-2 top-2 sm:left-1 sm:top-1 text-[7px] sm:text-[10px] font-semibold tracking-widest text-zinc-500">
+                        <div className="absolute left-0.5 top-0.5 sm:left-0.5 sm:top-0.5 text-[6px] sm:text-[10px] font-semibold tracking-widest text-zinc-500">
                           {d ? d.getDate() : ""}
                         </div>
 
@@ -758,8 +758,8 @@ function MonthlyCalendar({
                           <div
                             className={[
                               "absolute inset-0 flex items-center justify-center font-semibold tabular-nums",
-                              "text-[9px] sm:text-xs leading-none",
-                              "px-1 min-w-0 max-w-full truncate",
+                              "text-[7.5px] sm:text-xs leading-none",
+                              "px-0.5 sm:px-1 whitespace-nowrap",
                               pnl >= 0 ? "text-green-400" : "text-rose-400",
                             ].join(" ")}
                             title={`${pnl >= 0 ? "+" : "-"}$${Math.abs(pnl).toFixed(2)}`}
@@ -778,13 +778,13 @@ function MonthlyCalendar({
                 <div
                   className={`${cellBase} ${wSum !== 0 ? "ring-1 ring-sky-500/30" : ""} min-w-0`}
                 >
-                  <div className="h-full w-full p-1.5 sm:p-2 flex flex-col justify-between">
-                    <div className="text-[7px] sm:text-[9px] font-semibold tracking-widest text-zinc-600">
+                  <div className="h-full w-full p-1 sm:p-2 flex flex-col justify-between">
+                    <div className="text-[6px] sm:text-[9px] font-semibold tracking-widest text-zinc-500">
                       WEEKLY
                     </div>
 
                     <div
-                      className="flex items-center justify-center font-semibold text-sky-400 tabular-nums min-w-0 max-w-full truncate text-[9px] sm:text-xs leading-none"
+                      className="flex items-center justify-center font-semibold text-sky-400 tabular-nums min-w-0 max-w-full whitespace-nowrap text-[8px] sm:text-xs leading-none"
                       title={money0(wSum)}
                     >
                       {money0(wSum)}
