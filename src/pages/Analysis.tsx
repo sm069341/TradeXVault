@@ -396,13 +396,19 @@ export default function Analysis() {
 
     const maxAbs = Math.max(1, ...sessions.map((s) => Math.abs(obj[s].pnl)));
 
-    return sessions.map((s) => ({
-      name: s,
-      pnl: obj[s].pnl,
-      count: obj[s].count,
-      winRate: obj[s].count ? obj[s].wins / obj[s].count : 0,
-      barPct: (Math.abs(obj[s].pnl) / maxAbs) * 100,
-    }));
+    return sessions.map((s) => {
+      const count = obj[s].count;
+      const pnl = obj[s].pnl;
+
+      return {
+        name: s,
+        pnl,
+        count,
+        avgTrade: count ? pnl / count : 0,
+        winRate: count ? obj[s].wins / count : 0,
+        barPct: (Math.abs(pnl) / maxAbs) * 100,
+      };
+    });
   }, [filteredTrades]);
 
   return (
@@ -742,17 +748,17 @@ export default function Analysis() {
             {dayPerf.map((d) => {
               const barClass =
                 d.tone === "profit"
-                  ? "bg-green-600"
+                  ? "bg-emerald-500"
                   : d.tone === "loss"
-                    ? "bg-rose-600"
-                    : "bg-blue-500";
+                    ? "bg-rose-500"
+                    : "bg-sky-500";
 
               const valueClass =
                 d.tone === "profit"
-                  ? "text-green-500"
+                  ? "text-emerald-500"
                   : d.tone === "loss"
-                    ? "text-red-500"
-                    : "text-blue-500";
+                    ? "text-rose-500"
+                    : "text-sky-500";
 
               return (
                 <div key={d.label} className="flex items-center gap-2 sm:gap-3">
@@ -771,7 +777,7 @@ export default function Analysis() {
                   </div>
 
                   <div
-                    className={`w-16 sm:w-20 text-right text-[12px] sm:text-sm font-semibold ${valueClass} tabular-nums`}
+                    className={`w-16 sm:w-20 text-right text-[17px] sm:text-sm font-bold ${valueClass} tabular-nums`}
                   >
                     {d.value === 0 ? "+$0.00" : formatK(d.value)}
                   </div>
@@ -878,7 +884,7 @@ export default function Analysis() {
                   <div className="text-lg font-semibold text-white">
                     {s.name}
                   </div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-[9px] sm:text-[11px] text-zinc-500">
                     {s.name === "Asia"
                       ? "22:00 — 08:00 UTC"
                       : s.name === "London"
@@ -889,7 +895,7 @@ export default function Analysis() {
 
                 <div
                   className={[
-                    "text-x font-semibold transition-colors duration-300",
+                    "text-x font-bold transition-colors duration-300",
                     s.pnl > 0
                       ? "text-green-400"
                       : s.pnl < 0
@@ -906,27 +912,49 @@ export default function Analysis() {
                   className={[
                     "h-2 rounded-full transition-all duration-300",
                     s.pnl > 0
-                      ? "bg-green-500"
+                      ? "bg-emerald-500"
                       : s.pnl < 0
                         ? "bg-rose-500"
-                        : "bg-sky-500",
+                        : "bg-emerald-500",
                   ].join(" ")}
                   style={{ width: `${clamp(s.barPct, 2, 100)}%` }}
                 />
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                {/* Trades */}
                 <div>
-                  <div className="text-[11px] font-semibold tracking-widest text-zinc-500">
+                  <div className="text-[9px] sm:text-[11px] font-semibold tracking-widest text-zinc-500">
                     TRADES
                   </div>
-                  <div className="mt-1 font-semibold text-white">{s.count}</div>
+                  <div className="mt-1 text-[17px] font-bold text-white">{s.count}</div>
                 </div>
+
+                {/* Avg Trade */}
+                <div>
+                  <div className="text-[9px] sm:text-[11px] font-semibold tracking-widest text-zinc-500">
+                    AVG TRADE
+                  </div>
+                  <div
+                    className={[
+                      "mt-1 text-[17px] font-bold",
+                      s.avgTrade > 0
+                        ? "text-emerald-400"
+                        : s.avgTrade < 0
+                          ? "text-rose-400"
+                          : "text-emerald-400",
+                    ].join(" ")}
+                  >
+                    {formatK(s.avgTrade)}
+                  </div>
+                </div>
+
+                {/* Win Rate */}
                 <div className="text-right">
-                  <div className="text-[11px] font-semibold tracking-widest text-zinc-500">
+                  <div className="text-[9px] sm:text-[11px] font-semibold tracking-widest text-zinc-500">
                     WIN RATE
                   </div>
-                  <div className="mt-1 text-[18px] font-bold text-blue-500">
+                  <div className="mt-1 text-[17px] font-bold text-sky-400">
                     {s.count ? `${(s.winRate * 100).toFixed(1)}%` : "—"}
                   </div>
                 </div>
@@ -1129,15 +1157,15 @@ function DirCard({
 }) {
   const isLong = title === "Long";
 
-  const leftLine = isLong ? "bg-blue-500" : "bg-rose-500";
+  const leftLine = isLong ? "bg-emerald-500" : "bg-rose-500";
   const icon = isLong ? (
     <ArrowUpRight size={18} />
   ) : (
     <ArrowDownRight size={18} />
   );
   const accentText = isLong
-    ? "font-semibold text-blue-500"
-    : "font-semibold text-blue-500";
+    ? "font-bold text-blue-500"
+    : "font-bold text-blue-500";
   const accentBorder = isLong ? "border-emerald-500/25" : "border-rose-500/25";
 
   return (
@@ -1153,26 +1181,26 @@ function DirCard({
 
         <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
           <div>
-            <div className="text-[11px] font-semibold tracking-widest text-zinc-500">
+            <div className="text-[9px] sm:text-[10px] font-bold tracking-widest text-zinc-500">
               TRADES
             </div>
-            <div className="mt-1 font-semibold text-white">{count}</div>
+            <div className="mt-1 text-[17px] font-bold text-white">{count}</div>
           </div>
 
           <div>
-            <div className="text-[11px] font-semibold tracking-widest text-zinc-500">
+            <div className="text-[9px] sm:text-[10px] font-bold tracking-widest text-zinc-500">
               P&amp;L
             </div>
-            <div className={`mt-1 font-semibold ${accentText}`}>
+            <div className={`mt-1 text-[17px] font-bold ${accentText}`}>
               {formatK(pnl)}
             </div>
           </div>
 
           <div className="text-right">
-            <div className="text-[11px] font-semibold tracking-widest text-zinc-500">
+            <div className="text-[9px] sm:text-[10px] font-bold tracking-widest text-zinc-500">
               WIN %
             </div>
-            <div className={`mt-1 font-semibold ${accentText}`}>
+            <div className={`mt-1 text-[17px] font-bold ${accentText}`}>
               {(winRate * 100).toFixed(1)}%
             </div>
           </div>

@@ -497,9 +497,9 @@ export default function Trades() {
                           <span
                             className={[
                               "justify-self-center w-[64px] text-center rounded-full border px-2 py-1",
-                              "text-[11px] font-semibold leading-none whitespace-nowrap",
+                              "text-[11px] font-bold leading-none whitespace-nowrap",
                               isLong
-                                ? "border-sky-500/20 bg-sky-500/10 text-sky-300"
+                                ? "border-sky-500/20 bg-green-500/10 text-green-300"
                                 : "border-rose-500/20 bg-rose-500/10 text-rose-300",
                             ].join(" ")}
                           >
@@ -511,7 +511,7 @@ export default function Trades() {
                             <div
                               className={[
                                 "text-sm font-semibold tabular-nums whitespace-nowrap",
-                                pnl >= 0 ? "text-sky-400" : "text-rose-400",
+                                pnl >= 0 ? "text-green-500" : "text-rose-500",
                               ].join(" ")}
                             >
                               {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)}
@@ -617,10 +617,10 @@ export default function Trades() {
                         <div className="px-2 whitespace-nowrap">
                           <span
                             className={[
-                              "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold",
+                              "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-bold",
                               t.side === "BUY"
-                                ? "border-emerald-900/60 bg-emerald-900/20 text-emerald-200"
-                                : "border-rose-900/60 bg-rose-900/20 text-rose-200",
+                                ? "border-green-900/60 bg-green-900/20 text-green-300"
+                                : "border-rose-900/60 bg-rose-900/20 text-rose-300",
                             ].join(" ")}
                           >
                             <span className="inline-flex items-center gap-1">
