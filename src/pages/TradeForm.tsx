@@ -362,6 +362,7 @@ export default function TradeForm() {
                     <input
                       type="number"
                       min="0"
+                      step="0.01"
                       inputMode="decimal"
                       placeholder="Enter PnL"
                       value={pnl}
