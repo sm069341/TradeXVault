@@ -123,16 +123,38 @@ export default function Analysis() {
 
   const [period, setPeriod] = useState<PeriodKey>("30d");
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
+
+  const filteredTrades = useMemo(() => {
+    const start = periodStart(period);
+    const now = new Date();
+
+    return (trades as any[]).filter((t) => {
+      const d = pickDate(t);
+      if (!d) return false;
+      if (period !== "all" && (d < start || d > now)) return false;
+
+      const pnl = safeNum(t.pnl);
+      if (resultFilter === "winners") return pnl > 0;
+      if (resultFilter === "losers") return pnl < 0;
+      return true;
+    });
+  }, [trades, period, resultFilter]);
+
   const totalPL = useMemo(() => {
-    return trades.reduce((sum: number, t: any) => sum + Number(t.pnl ?? 0), 0);
-  }, [trades]);
+    return filteredTrades.reduce(
+      (sum: number, t: any) => sum + Number(t.pnl ?? 0),
+      0,
+    );
+  }, [filteredTrades]);
 
   const winRate = useMemo(() => {
-    const closed = trades.length;
+    const closed = filteredTrades.length;
     if (!closed) return 0;
-    const wins = trades.filter((t: any) => Number(t.pnl ?? 0) > 0).length;
+    const wins = filteredTrades.filter(
+      (t: any) => Number(t.pnl ?? 0) > 0,
+    ).length;
     return wins / closed;
-  }, [trades]);
+  }, [filteredTrades]);
 
   useEffect(() => {
     let alive = true;
@@ -168,22 +190,6 @@ export default function Analysis() {
       alive = false;
     };
   }, [user]);
-
-  const filteredTrades = useMemo(() => {
-    const start = periodStart(period);
-    const now = new Date();
-
-    return (trades as any[]).filter((t) => {
-      const d = pickDate(t);
-      if (!d) return false;
-      if (period !== "all" && (d < start || d > now)) return false;
-
-      const pnl = safeNum(t.pnl);
-      if (resultFilter === "winners") return pnl > 0;
-      if (resultFilter === "losers") return pnl < 0;
-      return true;
-    });
-  }, [trades, period, resultFilter]);
 
   const stats = useMemo(() => {
     const rows = filteredTrades as any[];
@@ -500,7 +506,7 @@ export default function Analysis() {
             />
           }
           value={`${totalPL >= 0 ? "+" : "-"}${money(Math.abs(totalPL))}`}
-          sub={<span className="text-sky-400">→ {trades.length} trades</span>}
+          sub={<span className="text-sky-400">→ {filteredTrades.length} trades</span>}
           accent="sky"
           highlight
         />
@@ -540,7 +546,7 @@ export default function Analysis() {
           title="EXPECTANCY"
           iconBg="bg-amber-500/15"
           tone="amber"
-          icon={<Sigma size={20} strokeWidth={2.6} className="text-sky-400" />}
+          icon={<Sigma size={30} strokeWidth={2.5} className="text-sky-400" />}
           value={formatK(stats.expectancy)}
           sub="Average per trade"
         />
