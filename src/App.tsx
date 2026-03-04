@@ -17,6 +17,8 @@ import { useAuthState } from "./hooks/useAuthState";
 import type { JSX } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import AppLoader from "./components/AppLoader";
+import TopProgress from "./components/TopProgress";
 
 /* =========================
    Layout / Shell
@@ -46,16 +48,20 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const title = usePageTitle(pathname);
   const dateText = useMemo(() => formatTopDate(), []);
   const [openMenu, setOpenMenu] = useState(false);
 
   const onLogout = async () => {
     try {
+      setLoggingOut(true);
       await signOut(auth);
       navigate("/login", { replace: true });
     } catch (err) {
       console.error("Logout failed:", err);
+      setLoggingOut(false);
     }
   };
 
@@ -75,6 +81,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openMenu]);
+
+  if (loggingOut) return <AppLoader label="Signing you out…" />;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -224,10 +232,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuthState();
-  if (loading)
-    return (
-      <div className="p-4 text-slate-500 dark:text-zinc-400">Loading...</div>
-    );
+  if (loading) return <AppLoader label="Checking session…" />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
@@ -292,6 +297,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <HashRouter>
+      <TopProgress />
       <AppRoutes />
     </HashRouter>
   );

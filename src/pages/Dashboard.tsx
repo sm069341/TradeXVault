@@ -5,6 +5,7 @@ import { useAuthState } from "../hooks/useAuthState";
 import type { Trade } from "../types";
 import { money } from "../lib/format";
 import { Link } from "react-router-dom";
+import DashboardSkeleton from "../components/DashboardSkeleton";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -79,6 +80,8 @@ export default function Dashboard() {
 
   const realized = totalPL;
   const unrealized = 0;
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -189,9 +192,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-4">
-          {loading ? (
-            <div className="text-sm text-zinc-400">Loading…</div>
-          ) : trades.length === 0 ? (
+          {trades.length === 0 ? (
             <div className="text-sm text-zinc-400">
               No trades yet. Add your first trade.
             </div>

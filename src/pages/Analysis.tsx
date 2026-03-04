@@ -4,6 +4,7 @@ import { db } from "../firebase";
 import { useAuthState } from "../hooks/useAuthState";
 import { money } from "../lib/format";
 import type { Trade } from "../types";
+import AnalysisSkeleton from "../components/AnalysisSkeleton";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -417,6 +418,8 @@ export default function Analysis() {
     });
   }, [filteredTrades]);
 
+  if (loading) return <AnalysisSkeleton />;
+
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* ===== Top header + filters like screenshot #1 ===== */}
@@ -506,7 +509,11 @@ export default function Analysis() {
             />
           }
           value={`${totalPL >= 0 ? "+" : "-"}${money(Math.abs(totalPL))}`}
-          sub={<span className="text-sky-400">→ {filteredTrades.length} trades</span>}
+          sub={
+            <span className="text-sky-400">
+              → {filteredTrades.length} trades
+            </span>
+          }
           accent="sky"
           highlight
         />
@@ -616,11 +623,7 @@ export default function Analysis() {
           </div>
 
           <div className="mt-4 h-[260px]">
-            {loading ? (
-              <div className="grid h-full place-items-center text-sm text-zinc-500">
-                Loading…
-              </div>
-            ) : equityData.length < 2 ? (
+            {equityData.length < 2 ? (
               <div className="grid h-full place-items-center text-sm text-zinc-500">
                 Close more trades to see your equity curve
               </div>
@@ -933,7 +936,9 @@ export default function Analysis() {
                   <div className="text-[9px] sm:text-[11px] font-semibold tracking-widest text-zinc-500">
                     TRADES
                   </div>
-                  <div className="mt-1 text-[17px] font-bold text-white">{s.count}</div>
+                  <div className="mt-1 text-[17px] font-bold text-white">
+                    {s.count}
+                  </div>
                 </div>
 
                 {/* Avg Trade */}

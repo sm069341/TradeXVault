@@ -6,6 +6,7 @@ import type { Trade } from "../types";
 import { money } from "../lib/format";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowUpRight, ArrowDownRight, History } from "lucide-react";
+import TradesSkeleton from "../components/TradesSkeleton";
 
 /* ---------- helpers ---------- */
 function ymd(d: Date) {
@@ -216,6 +217,8 @@ export default function Trades() {
   // const profitCount = useMemo(() => filtered.filter((x: any) => Number(x.pnl) > 0).length, [filtered]);
   // const lossCount = useMemo(() => filtered.filter((x: any) => Number(x.pnl) < 0).length, [filtered]);
 
+  if (loading) return <TradesSkeleton />;
+  
   return (
     <div className="space-y-5">
       {/* Page header like screenshot */}
@@ -473,11 +476,7 @@ export default function Trades() {
 
         {/* TABLE HEADER + ROWS */}
         <div className="mt-6 px-3 pb-6">
-          {loading ? (
-            <div className="py-10 text-center text-sm text-zinc-400">
-              Loading…
-            </div>
-          ) : filtered.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
               <div className="text-5xl text-zinc-700">⎇</div>
               <div className="text-sm text-zinc-500">
@@ -630,7 +629,8 @@ export default function Trades() {
                     {filtered.map((t: any) => (
                       <div
                         key={t.id}
-                        className="grid grid-cols-[160px_140px_120px_120px_140px_140px_140px_140px] items-center py-6 text-sm text-zinc-200 hover:bg-white/5 cursor-pointer">
+                        className="grid grid-cols-[160px_140px_120px_120px_140px_140px_140px_140px] items-center py-6 text-sm text-zinc-200 hover:bg-white/5 cursor-pointer"
+                      >
                         <div className="px-2 whitespace-nowrap text-zinc-400">
                           {t.entryDate}
                         </div>
