@@ -16,6 +16,18 @@ function ymd(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
+function formatDatePro(dateStr: string) {
+  if (!dateStr) return "-";
+
+  const date = new Date(dateStr);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleString("en-US", { month: "short" });
+  const year = String(date.getFullYear()).slice(2);
+
+  return `${day} ${month} '${year}`;
+}
+
 function startOfWeek(d: Date) {
   const x = new Date(d);
   const day = (x.getDay() + 6) % 7; // Monday=0
@@ -121,43 +133,6 @@ export default function Trades() {
     setTo("");
   };
 
-  // const hasAnyFilter =
-  //   symbol.trim() ||
-  //   plFilter !== "ALL" ||
-  //   typeFilter !== "ALL" ||
-  //   period !== "ALL" ||
-  //   from ||
-  //   to;
-
-  /* ---------- firestore load ---------- */
-  // async function load() {
-  //   if (!user) return;
-  //   setLoading(true);
-
-  //   try {
-  //     // keep your index-based query if you already created it
-  //     const q = query(
-  //       collection(db, "trades"),
-  //       where("uid", "==", user.uid),
-  //       orderBy("createdAt", "desc"),
-  //     );
-
-  //     const snap = await getDocs(q);
-
-  //     const rows = snap.docs.map((d) => ({
-  //       id: d.id,
-  //       ...(d.data() as any),
-  //     })) as any[];
-
-  //     setTrades(rows as any);
-  //   } catch (err) {
-  //     console.error("Failed to load trades:", err);
-  //     alert("Failed to load trades. Open console (F12) to see the error.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-  
   useEffect(() => {
     if (!user) return;
 
@@ -227,8 +202,27 @@ export default function Trades() {
   // const profitCount = useMemo(() => filtered.filter((x: any) => Number(x.pnl) > 0).length, [filtered]);
   // const lossCount = useMemo(() => filtered.filter((x: any) => Number(x.pnl) < 0).length, [filtered]);
 
+  /* ---------- filters Page (working) ---------- */
+  const PAGE_SIZE = 15;
+  const [page, setPage] = useState(1);
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  }, [filtered.length]);
+  // Clamp page if filters reduce results
+  useEffect(() => {
+    setPage((p) => Math.min(Math.max(1, p), totalPages));
+  }, [totalPages]);
+  // Reset to page 1 whenever filters change (so user doesn't land on empty page)
+  useEffect(() => {
+    setPage(1);
+  }, [symbol, typeFilter, plFilter, from, to, period]);
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
   if (loading) return <TradesSkeleton />;
-  
+
   return (
     <div className="space-y-5">
       {/* Page header like screenshot */}
@@ -270,7 +264,8 @@ export default function Trades() {
               <span>Trade History</span>
             </div>
             <div className="text-sm text-zinc-500">
-              {filtered.length} of {trades.length} trades
+              {filtered.length} of {trades.length} trades • Page {page} of{" "}
+              {totalPages}
             </div>
           </div>
 
@@ -505,7 +500,7 @@ export default function Trades() {
         MOBILE (exact accordion UI)
         ========================= */}
               <div className="sm:hidden space-y-3">
-                {filtered.slice(0, 15).map((t: any) => {
+                {pageItems.map((t: any) => {
                   const isOpen = openId === t.id;
                   const isLong = t.side === "BUY";
                   const pnl = Number(t.pnl || 0);
@@ -571,8 +566,8 @@ export default function Trades() {
                           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                             <div className="grid grid-cols-2 gap-y-3 text-sm">
                               <div className="text-zinc-500">Date</div>
-                              <div className="text-right text-zinc-200 tabular-nums">
-                                {t.entryDate}
+                              <div className="text-right text-zinc-500 tabular-nums">
+                                {formatDatePro(t.entryDate)}
                               </div>
 
                               <div className="text-zinc-500">Session</div>
@@ -599,6 +594,13 @@ export default function Trades() {
                               <div className="text-right text-zinc-200 tabular-nums">
                                 {t.quantity != null
                                   ? `${Number(t.quantity).toFixed(2)}`
+                                  : "-"}
+                              </div>
+
+                              <div className="text-zinc-500">Tags</div>
+                              <div className="text-right text-zinc-200">
+                                {Array.isArray(t.tags) && t.tags.length
+                                  ? t.tags.join(", ")
                                   : "-"}
                               </div>
 
@@ -632,17 +634,18 @@ export default function Trades() {
                     <div className="px-2 uppercase">EXIT</div>
                     <div className="px-2 uppercase">QUANTITY</div>
                     <div className="px-2 text-right uppercase">P&amp;L</div>
+                    <div className="px-2 uppercase">TAGS</div>
                   </div>
 
                   {/* Rows */}
                   <div className="divide-y divide-white/10">
-                    {filtered.map((t: any) => (
+                    {pageItems.map((t: any) => (
                       <div
                         key={t.id}
                         className="grid grid-cols-[160px_140px_120px_120px_140px_140px_140px_140px] items-center py-6 text-sm text-zinc-200 hover:bg-white/5 cursor-pointer"
                       >
                         <div className="px-2 whitespace-nowrap text-zinc-400">
-                          {t.entryDate}
+                          {formatDatePro(t.entryDate)}
                         </div>
                         <div className="px-2 whitespace-nowrap font-semibold text-white">
                           {t.symbol}
@@ -705,10 +708,59 @@ export default function Trades() {
                           {Number(t.pnl) >= 0 ? "+" : "-"}
                           {money(Math.abs(Number(t.pnl) || 0))}
                         </div>
+
+                        <div className="px-2 text-zinc-200 truncate">
+                          {Array.isArray(t.tags) && t.tags.length
+                            ? t.tags.join(", ")
+                            : "-"}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
+                {filtered.length > 0 && totalPages > 1 ? (
+                  <div className="mt-5 flex items-center justify-between px-3">
+                    <div className="text-sm text-zinc-500">
+                      Showing {(page - 1) * PAGE_SIZE + 1}–
+                      {Math.min(page * PAGE_SIZE, filtered.length)} of{" "}
+                      {filtered.length}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className={[
+                          "rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold",
+                          page === 1
+                            ? "text-zinc-600 cursor-not-allowed"
+                            : "text-zinc-200 hover:bg-white/10",
+                        ].join(" ")}
+                      >
+                        ← Prev
+                      </button>
+
+                      <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-300 tabular-nums">
+                        {page}/{totalPages}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={page === totalPages}
+                        className={[
+                          "rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold",
+                          page === totalPages
+                            ? "text-zinc-600 cursor-not-allowed"
+                            : "text-zinc-200 hover:bg-white/10",
+                        ].join(" ")}
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </>
           )}
