@@ -22,6 +22,7 @@ import {
   Target,
   CheckCircle2,
   BarChart3,
+  BarChart2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -78,8 +79,26 @@ export default function Dashboard() {
     return wins / closed;
   }, [trades]);
 
+  const tradeStats = useMemo(() => {
+    const eps = 0.000001;
+
+    const total = trades.length;
+
+    let wins = 0;
+    let losses = 0;
+    let breakeven = 0;
+
+    for (const t of trades as any[]) {
+      const pnl = Number(t.pnl ?? 0);
+      if (pnl > eps) wins++;
+      else if (pnl < -eps) losses++;
+      else breakeven++;
+    }
+
+    return { total, wins, losses, breakeven };
+  }, [trades]);
+
   const realized = totalPL;
-  const unrealized = 0;
 
   if (loading) return <DashboardSkeleton />;
 
@@ -106,12 +125,70 @@ export default function Dashboard() {
         />
 
         <MetricCard
-          title="UNREALIZED"
+          title="ALL TRADES"
           iconBg="bg-amber-500/15"
           tone="amber"
-          icon={<Clock size={30} strokeWidth={2.5} className="text-amber-300" />}
-          value={`${unrealized >= 0 ? "+" : "-"}${money(Math.abs(unrealized))}`}
-          sub={<span className="text-zinc-500">0 open positions</span>}
+          icon={
+            <BarChart2 size={30} strokeWidth={2.5} className="text-amber-300" />
+          }
+          value={``}
+          sub={
+            <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-3">
+              {/* WIN */}
+              <div className="group relative rounded-lg sm:rounded-xl border border-white/10 bg-white/[0.045] p-2 sm:p-3 text-center transition-all duration-200 hover:bg-white/[0.07] hover:-translate-y-[1px] hover:border-white/15">
+                <div className="pointer-events-none absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-b from-white/[0.05] to-transparent" />
+
+                <div className="relative text-[8px] sm:text-xs font-semibold text-zinc-500 tracking-widest">
+                  WIN
+                </div>
+
+                <div className="relative mt-0.5 sm:mt-1 text-sm sm:text-2xl font-bold text-emerald-500 tabular-nums">
+                  {tradeStats.wins}
+                </div>
+
+                {/* accent line */}
+                <div className="absolute bottom-0 left-[1px] right-[1px] h-[2px] overflow-hidden rounded-b-md sm:rounded-b-lg">
+                  <div className="h-full w-full bg-emerald-400/30 transition-all duration-300 group-hover:bg-emerald-400/80" />
+                </div>
+              </div>
+
+              {/* LOSS */}
+              <div className="group relative rounded-lg sm:rounded-xl border border-white/10 bg-white/[0.045] p-2 sm:p-3 text-center transition-all duration-200 hover:bg-white/[0.07] hover:-translate-y-[1px] hover:border-white/15">
+                <div className="pointer-events-none absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-b from-white/[0.05] to-transparent" />
+
+                <div className="relative text-[8px] sm:text-xs font-semibold text-zinc-500 tracking-widest">
+                  LOSS
+                </div>
+
+                <div className="relative mt-0.5 sm:mt-1 text-sm sm:text-2xl font-bold text-rose-500 tabular-nums">
+                  {tradeStats.losses}
+                </div>
+
+                {/* accent line */}
+                <div className="absolute bottom-0 left-[1px] right-[1px] h-[2px] overflow-hidden rounded-b-md sm:rounded-b-lg">
+                  <div className="h-full w-full bg-rose-400/30 transition-all duration-300 group-hover:bg-rose-400/80" />
+                </div>
+              </div>
+
+              {/* BE */}
+              <div className="group relative rounded-lg sm:rounded-xl border border-white/10 bg-white/[0.045] p-2 sm:p-3 text-center transition-all duration-200 hover:bg-white/[0.07] hover:-translate-y-[1px] hover:border-white/15">
+                <div className="pointer-events-none absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-b from-white/[0.05] to-transparent" />
+
+                <div className="relative text-[8px] sm:text-xs font-semibold text-zinc-500 tracking-widest">
+                  BE
+                </div>
+
+                <div className="relative mt-0.5 sm:mt-1 text-sm sm:text-2xl font-bold text-blue-500 tabular-nums">
+                  {tradeStats.breakeven}
+                </div>
+
+                {/* accent line */}
+                <div className="absolute bottom-0 left-[1px] right-[1px] h-[2px] overflow-hidden rounded-b-md sm:rounded-b-lg">
+                  <div className="h-full w-full bg-blue-400/30 transition-all duration-300 group-hover:bg-blue-400/80" />
+                </div>
+              </div>
+            </div>
+          }
         />
 
         <MetricCard
@@ -136,7 +213,9 @@ export default function Dashboard() {
           title="WIN RATE"
           iconBg="bg-indigo-500/15"
           tone="rose"
-          icon={<Target size={30} strokeWidth={2.5} className="text-indigo-500" />}
+          icon={
+            <Target size={30} strokeWidth={2.5} className="text-indigo-500" />
+          }
           value={`${Math.round(winRate * 100)}%`}
           sub={
             <div className="mt-3 h-2 w-full rounded-full bg-white/10">
@@ -179,29 +258,40 @@ export default function Dashboard() {
             <div className="text-sm text-zinc-500">Latest activity</div>
           </div>
 
-          <Link className="text-sm font-semibold text-zinc-200 hover:underline" to="/trades">
+          <Link
+            className="text-sm font-semibold text-zinc-200 hover:underline"
+            to="/trades"
+          >
             View all
           </Link>
         </div>
 
         <div className="mt-4">
           {trades.length === 0 ? (
-            <div className="text-sm text-zinc-400">No trades yet. Add your first trade.</div>
+            <div className="text-sm text-zinc-400">
+              No trades yet. Add your first trade.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-xs text-zinc-500">
                   <tr className="border-b border-white/10">
-                    <th className="px-2 py-3 text-left font-semibold">Symbol</th>
+                    <th className="px-2 py-3 text-left font-semibold">
+                      Symbol
+                    </th>
                     <th className="px-2 py-3 text-left font-semibold">Date</th>
                     <th className="px-2 py-3 text-left font-semibold">Side</th>
-                    <th className="px-2 py-3 text-right font-semibold">P&amp;L</th>
+                    <th className="px-2 py-3 text-right font-semibold">
+                      P&amp;L
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {trades.slice(0, 8).map((t: any) => (
                     <tr key={t.id} className="hover:bg-white/5">
-                      <td className="px-2 py-3 font-semibold text-white">{t.symbol}</td>
+                      <td className="px-2 py-3 font-semibold text-white">
+                        {t.symbol}
+                      </td>
                       <td className="px-2 py-3 text-zinc-500">{t.entryDate}</td>
                       <td className="px-2 py-3">
                         <span
@@ -218,7 +308,9 @@ export default function Dashboard() {
                       <td
                         className={[
                           "px-2 py-3 text-right font-semibold",
-                          Number(t.pnl) >= 0 ? "text-green-500" : "text-red-500",
+                          Number(t.pnl) >= 0
+                            ? "text-green-500"
+                            : "text-red-500",
                         ].join(" ")}
                       >
                         {Number(t.pnl) >= 0 ? "+" : "-"}
@@ -358,7 +450,9 @@ function MetricCard({
           {value}
         </div>
 
-        {sub ? <div className="mt-2 text-[9px] sm:text-xs text-zinc-600">{sub}</div> : null}
+        {sub ? (
+          <div className="mt-2 text-[9px] sm:text-xs text-zinc-600">{sub}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -368,7 +462,13 @@ function MetricCard({
    PERFORMANCE CHART
 ========================= */
 
-function PerformanceChart({ trades, totalPL }: { trades: Trade[]; totalPL: number }) {
+function PerformanceChart({
+  trades,
+  totalPL,
+}: {
+  trades: Trade[];
+  totalPL: number;
+}) {
   const [range, setRange] = useState<"1D" | "1W" | "1M" | "3M" | "ALL">("1W");
 
   const parseYMD = (v?: any) => {
@@ -438,7 +538,10 @@ function PerformanceChart({ trades, totalPL }: { trades: Trade[]; totalPL: numbe
         const ts = t.createdAt?.toMillis?.() ?? 0;
         return { ...t, __d: d, __ts: ts };
       })
-      .sort((a: any, b: any) => a.__d.getTime() - b.__d.getTime() || a.__ts - b.__ts)
+      .sort(
+        (a: any, b: any) =>
+          a.__d.getTime() - b.__d.getTime() || a.__ts - b.__ts,
+      )
       .filter((t: any) => t.__d && inRange(t.__d));
 
     let cum = 0;
@@ -508,7 +611,9 @@ function PerformanceChart({ trades, totalPL }: { trades: Trade[]; totalPL: numbe
                 onClick={() => setRange(t)}
                 className={[
                   "rounded-xl px-3 py-2 sm:px-4 font-semibold",
-                  range === t ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5",
+                  range === t
+                    ? "bg-white/10 text-white"
+                    : "text-zinc-400 hover:bg-white/5",
                 ].join(" ")}
               >
                 {t}
@@ -626,7 +731,8 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
 
   // ---- helpers ----
   const pad2 = (n: number) => String(n).padStart(2, "0");
-  const keyOf = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const keyOf = (d: Date) =>
+    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
   const parseYMD = (s?: string) => {
     if (!s) return null;
@@ -643,14 +749,21 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
   const daily = useMemo(() => {
     const map = new Map<
       string,
-      { pnl: number; count: number; bySymbol: Map<string, { pnl: number; count: number }> }
+      {
+        pnl: number;
+        count: number;
+        bySymbol: Map<string, { pnl: number; count: number }>;
+      }
     >();
 
     for (const t of trades as any[]) {
       const dt = parseYMD(t.entryDate);
       if (!dt) continue;
 
-      if (dt.getMonth() !== monthStart.getMonth() || dt.getFullYear() !== monthStart.getFullYear())
+      if (
+        dt.getMonth() !== monthStart.getMonth() ||
+        dt.getFullYear() !== monthStart.getFullYear()
+      )
         continue;
 
       const k = keyOf(dt);
@@ -685,7 +798,10 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
         d.setDate(first.getDate() + w * 7 + i);
 
         // keep actual date object, but mark outside month as null
-        if (d.getFullYear() === monthStart.getFullYear() && d.getMonth() === monthStart.getMonth()) {
+        if (
+          d.getFullYear() === monthStart.getFullYear() &&
+          d.getMonth() === monthStart.getMonth()
+        ) {
           row.push(d);
         } else {
           row.push(null);
@@ -697,7 +813,10 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
   }, [monthStart]);
 
   const monthLabel = useMemo(() => {
-    return monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    return monthStart.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
   }, [monthStart]);
 
   const monthTotal = useMemo(() => {
@@ -712,7 +831,8 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
     return `${n > 0 ? "+" : "-"}$${abs}`;
   };
 
-  const pnlColor = (n: number) => (n > 0 ? "text-emerald-500" : n < 0 ? "text-rose-500" : "text-blue-500");
+  const pnlColor = (n: number) =>
+    n > 0 ? "text-emerald-500" : n < 0 ? "text-rose-500" : "text-blue-500";
 
   // ---- styles (exact squares) ----
   const cellBase =
@@ -743,7 +863,11 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
             <div className="text-xs font-semibold text-white">{monthLabel}</div>
             <div className="text-[10px] text-zinc-600">
               Monthly:{" "}
-              <span className={["font-bold text-[12px]", pnlColor(monthTotal)].join(" ")}>
+              <span
+                className={["font-bold text-[12px]", pnlColor(monthTotal)].join(
+                  " ",
+                )}
+              >
                 {money0(monthTotal)}
               </span>
             </div>
@@ -754,7 +878,9 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
             disabled={!nextEnabled}
             className={[
               "grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-zinc-200",
-              nextEnabled ? "hover:bg-white/10" : "opacity-40 cursor-not-allowed",
+              nextEnabled
+                ? "hover:bg-white/10"
+                : "opacity-40 cursor-not-allowed",
             ].join(" ")}
             aria-label="Next month"
           >
@@ -787,7 +913,11 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
             }
 
             const weeklyRing =
-              wSum > 0 ? "ring-1 ring-emerald-500/50" : wSum < 0 ? "ring-1 ring-rose-500/50" : "";
+              wSum > 0
+                ? "ring-1 ring-emerald-500/50"
+                : wSum < 0
+                  ? "ring-1 ring-rose-500/50"
+                  : "";
 
             return (
               <React.Fragment key={wi}>
@@ -799,7 +929,11 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
 
                   const pairs = info
                     ? Array.from(info.bySymbol.entries())
-                        .map(([symbol, v]) => ({ symbol, pnl: v.pnl, count: v.count }))
+                        .map(([symbol, v]) => ({
+                          symbol,
+                          pnl: v.pnl,
+                          count: v.count,
+                        }))
                         .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
                     : [];
 
@@ -807,8 +941,8 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
                     has && pnl > 0
                       ? "ring-1 ring-emerald-500/50"
                       : has && pnl < 0
-                      ? "ring-1 ring-rose-500/50"
-                      : "";
+                        ? "ring-1 ring-rose-500/50"
+                        : "";
 
                   return (
                     <div
@@ -857,24 +991,42 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
                               })}
                             </div>
 
-                            <div className={["mt-1 text-sm font-bold", pnlColor(pnl)].join(" ")}>
+                            <div
+                              className={[
+                                "mt-1 text-sm font-bold",
+                                pnlColor(pnl),
+                              ].join(" ")}
+                            >
                               {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)}
                             </div>
 
                             <div className="mt-2 space-y-1">
                               {pairs.slice(0, 6).map((p) => (
-                                <div key={p.symbol} className="flex items-center justify-between text-xs">
+                                <div
+                                  key={p.symbol}
+                                  className="flex items-center justify-between text-xs"
+                                >
                                   <span className="text-zinc-300 font-semibold">
                                     {p.symbol}{" "}
-                                    <span className="text-zinc-600 font-normal">({p.count})</span>
+                                    <span className="text-zinc-600 font-normal">
+                                      ({p.count})
+                                    </span>
                                   </span>
-                                  <span className={["tabular-nums font-semibold", pnlColor(p.pnl)].join(" ")}>
-                                    {p.pnl >= 0 ? "+" : "-"}${Math.abs(p.pnl).toFixed(2)}
+                                  <span
+                                    className={[
+                                      "tabular-nums font-semibold",
+                                      pnlColor(p.pnl),
+                                    ].join(" ")}
+                                  >
+                                    {p.pnl >= 0 ? "+" : "-"}$
+                                    {Math.abs(p.pnl).toFixed(2)}
                                   </span>
                                 </div>
                               ))}
                               {pairs.length > 6 ? (
-                                <div className="text-[11px] text-zinc-500">+{pairs.length - 6} more</div>
+                                <div className="text-[11px] text-zinc-500">
+                                  +{pairs.length - 6} more
+                                </div>
                               ) : null}
                             </div>
                           </div>
@@ -885,7 +1037,9 @@ function MonthlyCalendar({ trades }: { trades: Trade[] }) {
                 })}
 
                 {/* weekly square (same size as day squares) */}
-                <div className={`${cellBase} ${wSum !== 0 ? weeklyRing : ""} min-w-0`}>
+                <div
+                  className={`${cellBase} ${wSum !== 0 ? weeklyRing : ""} min-w-0`}
+                >
                   <div className="h-full w-full p-1 sm:p-2 flex flex-col justify-between">
                     <div className="text-[6px] sm:text-[9px] font-semibold tracking-widest text-zinc-500">
                       WEEKLY
