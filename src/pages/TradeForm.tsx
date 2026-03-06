@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { useAuthState } from "../hooks/useAuthState";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Sparkles, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle  } from "lucide-react";
+import { Sparkles, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle, X, CircleDot, XCircle, ChevronDown, Check } from "lucide-react";
 
 export default function TradeForm() {
   const { user } = useAuthState();
@@ -11,7 +11,9 @@ export default function TradeForm() {
 
   const [side, setSide] = useState<"LONG" | "SHORT">("LONG");
   const [date, setDate] = useState("");
-  const [session, setSession] = useState("Asia");
+  const sessions = ["Asia", "London", "New York"];
+  const [session, setSession] = useState("");
+  const [sessionOpen, setSessionOpen] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [quantity, setQuantity] = useState("");
   const [entryPrice, setEntryPrice] = useState("");
@@ -157,7 +159,7 @@ export default function TradeForm() {
                 aria-label="Close"
                 disabled={saving}
               >
-                ✕
+                <X size={28} strokeWidth={2} />
               </button>
             </div>
 
@@ -296,16 +298,52 @@ export default function TradeForm() {
                 </Field>
 
                 <Field label="SESSION">
-                  <select
-                    value={session}
-                    onChange={(e) => setSession(e.target.value)}
-                    className={`${inputCls} appearance-none text-white`}
-                    disabled={saving}
-                  >
-                    <option className="bg-zinc-900 text-white">Asia</option>
-                    <option className="bg-zinc-900 text-white">London</option>
-                    <option className="bg-zinc-900 text-white">New York</option>
-                  </select>
+                  <div className="relative">
+  <button
+    type="button"
+    onClick={() => !saving && setSessionOpen((v) => !v)}
+    disabled={saving}
+    className={[
+      "w-full rounded-2xl border px-4 py-3 pr-10 text-left text-sm outline-none transition-all",
+      "bg-zinc-900/60 border-zinc-700 hover:bg-zinc-900/80",
+      "focus:ring-2 focus:ring-zinc-600/40",
+      session ? "text-white" : "text-zinc-500",
+      saving ? "opacity-70 cursor-not-allowed" : "",
+    ].join(" ")}
+  >
+    {session || "Select session"}
+  </button>
+
+  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+    <ChevronDown
+      size={18}
+      className={`transition-transform duration-200 ${sessionOpen ? "rotate-180" : ""}`}
+    />
+  </span>
+
+  {sessionOpen && (
+    <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+      {sessions.map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => {
+            setSession(item);
+            setSessionOpen(false);
+          }}
+          className={[
+            "flex w-full items-center justify-between px-4 py-3 text-sm transition",
+            "text-zinc-200 hover:bg-white/5",
+            session === item ? "bg-white/5" : "",
+          ].join(" ")}
+        >
+          <span>{item}</span>
+          {session === item && <Check size={16} className="text-emerald-300" />}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
                 </Field>
 
                 <Field label="RESULT" className="md:col-span-2">
@@ -374,25 +412,40 @@ export default function TradeForm() {
                       className={[
                         "w-full rounded-2xl px-4 py-3 pl-10 pr-10 text-sm outline-none transition-all duration-300 ease-out",
                         "bg-zinc-900/60",
+
                         result === "WIN"
-                          ? "text-emerald-200 border border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.12)]"
+                          ? "text-emerald-200 border border-emerald-500/40 focus:ring-emerald-500/30 animate-[pnlGlowGreen_.6s_ease-out]"
                           : result === "LOSS"
-                            ? "text-rose-200 border border-rose-500/40 focus:ring-2 focus:ring-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
-                            : "text-zinc-200 border border-zinc-700 focus:ring-2 focus:ring-zinc-600/40",
+                            ? "text-rose-200 border border-rose-500/40 focus:ring-rose-500/30 animate-[pnlGlowRed_.6s_ease-out]"
+                            : "text-zinc-200 border border-zinc-700 focus:ring-zinc-600/40",
                       ].join(" ")}
                     />
 
                     {/* Animated check icon for WIN */}
                     <span
+                      key={result}
                       className={[
                         "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2",
                         "transition-all duration-300",
+                        result
+                          ? "opacity-100 animate-[resultIconPop_.4s_cubic-bezier(.22,1,.36,1)]"
+                          : "opacity-0 scale-90",
                         result === "WIN"
-                          ? "opacity-100 scale-100 text-emerald-300"
-                          : "opacity-0 scale-90 text-zinc-600",
+                          ? "text-emerald-300"
+                          : result === "LOSS"
+                            ? "text-rose-300"
+                            : "text-zinc-400",
                       ].join(" ")}
                     >
-                      <CheckCircle size={18} strokeWidth={2.6} />
+                      {result === "WIN" && (
+                        <CheckCircle size={20} strokeWidth={2.6} />
+                      )}
+                      {result === "LOSS" && (
+                        <XCircle size={20} strokeWidth={2.6} />
+                      )}
+                      {result === "BE" && (
+                        <CircleDot size={20} strokeWidth={2.6} />
+                      )}
                     </span>
                   </div>
                 </Field>
