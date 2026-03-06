@@ -24,6 +24,7 @@ import {
   Trophy,
   Globe,
   ArrowUpDown,
+  // BarChart3,
 } from "lucide-react";
 import { Sigma, Scale, DollarSign, Target } from "lucide-react";
 
@@ -203,6 +204,7 @@ export default function Analysis() {
     let grossLoss = 0;
     let wins = 0;
     let losses = 0;
+    let breakeven = 0;
 
     let best = -Infinity;
     let worst = Infinity;
@@ -225,6 +227,8 @@ export default function Analysis() {
         losses++;
         grossLoss += Math.abs(pnl);
         losers.push(pnl);
+      } else {
+        breakeven++;
       }
     }
 
@@ -238,6 +242,9 @@ export default function Analysis() {
     const avgLoser = losers.length
       ? losers.reduce((a, b) => a + b, 0) / losers.length
       : 0;
+
+    const riskReward =
+      Math.abs(avgLoser) > 0 ? Math.abs(avgWinner) / Math.abs(avgLoser) : 0;
 
     // streaks (use chronological)
     const chronological = [...rows].sort((a, b) => {
@@ -275,11 +282,15 @@ export default function Analysis() {
       total,
       wins,
       losses,
+      breakeven,
+      grossProfit,
+      grossLoss,
       winRate,
       profitFactor,
       expectancy,
       avgWinner,
       avgLoser,
+      riskReward,
       best: best === -Infinity ? 0 : best,
       worst: worst === Infinity ? 0 : worst,
       bestWin,
@@ -604,23 +615,37 @@ export default function Analysis() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <MiniStat label="AVG WINNER" value={formatK(stats.avgWinner)} />
+
             <MiniStat
               label="AVG LOSER"
               value={`-${formatK(Math.abs(stats.avgLoser)).replace("+", "")}`}
               danger
             />
+
             <MiniStat label="BEST TRADE" value={formatK(stats.best)} />
+
             <MiniStat
               label="WORST TRADE"
               value={`-${formatK(Math.abs(stats.worst)).replace("+", "")}`}
               danger
             />
+
             <MiniStat label="WIN STREAK" value={`${stats.bestWin} trades`} />
+
             <MiniStat
               label="LOSS STREAK"
               value={`${stats.bestLoss} trades`}
               danger
             />
+
+            <MiniStat
+              label="RISK:REWARD"
+              value={
+                stats.riskReward > 0 ? `1:${stats.riskReward.toFixed(2)}` : "—"
+              }
+            />
+
+            <MiniStat label="BREAKEVEN" value={`${stats.breakeven} trades`} />
           </div>
         </Panel>
 
@@ -655,7 +680,7 @@ export default function Analysis() {
             </div>
           </div>
 
-          <div className="mt-4 h-[260px]">
+          <div className="mt-4 h-[350px]">
             {equityData.length < 2 ? (
               <div className="grid h-full place-items-center text-sm text-zinc-500">
                 Close more trades to see your equity curve
@@ -826,6 +851,23 @@ export default function Analysis() {
           </div>
         </Panel>
       </div>
+
+      {/* <Panel>
+        <div className="flex items-center gap-2 text-lg font-semibold text-white">
+          <BarChart3 size={20} strokeWidth={2.6} className="text-sky-400 shrink-0" />
+          <span>Win/Loss Distribution</span>
+        </div>
+
+        <div className="mt-6">
+          <WinLossDistribution
+            wins={stats.wins}
+            losses={stats.losses}
+            grossProfit={stats.grossProfit}
+            grossLoss={stats.grossLoss}
+            netResult={stats.total}
+          />
+        </div>
+      </Panel> */}
 
       {/* =========================
           SECOND SCREEN CONTENT (Trade Analysis view)
@@ -1363,3 +1405,95 @@ function DirCard({
     </div>
   );
 }
+
+
+// function WinLossDistribution({
+//   wins,
+//   losses,
+//   grossProfit,
+//   grossLoss,
+//   netResult,
+// }: {
+//   wins: number;
+//   losses: number;
+//   grossProfit: number;
+//   grossLoss: number;
+//   netResult: number;
+// }) {
+//   const total = wins + losses;
+//   const winPct = total > 0 ? (wins / total) * 100 : 0;
+//   const lossPct = total > 0 ? (losses / total) * 100 : 0;
+
+//   return (
+//     <div>
+//       {/* top distribution bar */}
+//       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+//         <div className="flex h-14 w-full">
+//           <div
+//             className="flex items-center justify-center bg-gradient-to-r from-sky-500 to-blue-600 text-sm font-semibold text-white"
+//             style={{ width: `${winPct}%` }}
+//           >
+//             {wins > 0 ? `${wins}W` : ""}
+//           </div>
+
+//           <div
+//             className="flex items-center justify-center bg-gradient-to-r from-rose-500 to-red-500 text-sm font-semibold text-white"
+//             style={{ width: `${lossPct}%` }}
+//           >
+//             {losses > 0 ? `${losses}L` : ""}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* stats list */}
+//       <div className="mt-5 space-y-4">
+//         <DistRow
+//           dot="bg-sky-500"
+//           label="Gross Profit"
+//           value={`$${grossProfit.toFixed(2)}`}
+//           valueClass="text-sky-500"
+//         />
+
+//         <DistRow
+//           dot="bg-rose-500"
+//           label="Gross Loss"
+//           value={`-$${grossLoss.toFixed(2)}`}
+//           valueClass="text-rose-500"
+//         />
+
+//         <DistRow
+//           dot="bg-blue-500"
+//           label="Net Result"
+//           value={`${netResult >= 0 ? "$" : "-$"}${Math.abs(netResult).toFixed(2)}`}
+//           valueClass={netResult >= 0 ? "text-blue-500" : "text-rose-500"}
+//         />
+//       </div>
+//     </div>
+//   );
+// }
+
+
+// function DistRow({
+//   dot,
+//   label,
+//   value,
+//   valueClass,
+// }: {
+//   dot: string;
+//   label: string;
+//   value: string;
+//   valueClass: string;
+// }) {
+//   return (
+//     <div className="flex items-center justify-between">
+//       <div className="flex items-center gap-3">
+//         <span className={`h-3 w-3 rounded-full ${dot}`} />
+//         <span className="text-base text-zinc-400">{label}</span>
+//       </div>
+
+//       <span className={`text-[28px] font-bold tracking-tight ${valueClass}`}>
+//         {value}
+//       </span>
+//     </div>
+//   );
+// }
