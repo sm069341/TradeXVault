@@ -21,7 +21,14 @@ export default function TradeForm() {
   const [result, setResult] = useState<"WIN" | "LOSS" | "BE">("WIN");
   const [pnl, setPnl] = useState("");
   const [equityAfter, setEquityAfter] = useState("");
-  const [tags, setTags] = useState("");
+  const strategies = ["A+", "TJL-1", "TJL-2", "SBR", "RBS", "5Wave Choch", "Dual Choch"];
+  const timeframes = ["1m", "5m", "15m", "1h", "4h", "1D"];
+
+  const [strategy, setStrategy] = useState("");
+  const [timeframe, setTimeframe] = useState("");
+
+  const [strategyOpen, setStrategyOpen] = useState(false);
+  const [timeframeOpen, setTimeframeOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [pnlPulseKey, setPnlPulseKey] = useState(0);
 
@@ -42,6 +49,11 @@ export default function TradeForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || saving) return;
+
+    if (!strategy || !timeframe) {
+      alert("Please select strategy and timeframe.");
+      return;
+    }
 
     setSaving(true);
 
@@ -73,7 +85,7 @@ export default function TradeForm() {
         pnl: normalizedPnl,
         equityAfter: Number(equityAfter),
 
-        tags: tags.split(",").map((t) => t.trim()),
+        tags: strategy && timeframe ? [`${strategy} ${timeframe}`] : [],
         notes,
 
         createdAt: Timestamp.now(),
@@ -299,51 +311,53 @@ export default function TradeForm() {
 
                 <Field label="SESSION">
                   <div className="relative">
-  <button
-    type="button"
-    onClick={() => !saving && setSessionOpen((v) => !v)}
-    disabled={saving}
-    className={[
-      "w-full rounded-2xl border px-4 py-3 pr-10 text-left text-sm outline-none transition-all",
-      "bg-zinc-900/60 border-zinc-700 hover:bg-zinc-900/80",
-      "focus:ring-2 focus:ring-zinc-600/40",
-      session ? "text-white" : "text-zinc-500",
-      saving ? "opacity-70 cursor-not-allowed" : "",
-    ].join(" ")}
-  >
-    {session || "Select session"}
-  </button>
+                    <button
+                      type="button"
+                      onClick={() => !saving && setSessionOpen((v) => !v)}
+                      disabled={saving}
+                      className={[
+                        "w-full rounded-2xl border px-4 py-3 pr-10 text-left text-sm outline-none transition-all",
+                        "bg-zinc-900/60 border-zinc-700 hover:bg-zinc-900/80",
+                        "focus:ring-2 focus:ring-zinc-600/40",
+                        session ? "text-white" : "text-zinc-500",
+                        saving ? "opacity-70 cursor-not-allowed" : "",
+                      ].join(" ")}
+                    >
+                      {session || "Select session"}
+                    </button>
 
-  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
-    <ChevronDown
-      size={18}
-      className={`transition-transform duration-200 ${sessionOpen ? "rotate-180" : ""}`}
-    />
-  </span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                      <ChevronDown
+                        size={18}
+                        className={`transition-transform duration-200 ${sessionOpen ? "rotate-180" : ""}`}
+                      />
+                    </span>
 
-  {sessionOpen && (
-    <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
-      {sessions.map((item) => (
-        <button
-          key={item}
-          type="button"
-          onClick={() => {
-            setSession(item);
-            setSessionOpen(false);
-          }}
-          className={[
-            "flex w-full items-center justify-between px-4 py-3 text-sm transition",
-            "text-zinc-200 hover:bg-white/5",
-            session === item ? "bg-white/5" : "",
-          ].join(" ")}
-        >
-          <span>{item}</span>
-          {session === item && <Check size={16} className="text-emerald-300" />}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+                    {sessionOpen && (
+                      <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+                        {sessions.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => {
+                              setSession(item);
+                              setSessionOpen(false);
+                            }}
+                            className={[
+                              "flex w-full items-center justify-between px-4 py-3 text-sm transition",
+                              "text-zinc-200 hover:bg-white/5",
+                              session === item ? "bg-white/5" : "",
+                            ].join(" ")}
+                          >
+                            <span>{item}</span>
+                            {session === item && (
+                              <Check size={16} className="text-emerald-300" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Field>
 
                 <Field label="RESULT" className="md:col-span-2">
@@ -461,13 +475,117 @@ export default function TradeForm() {
                 </Field>
 
                 <Field label="TAGS" className="md:col-span-2">
-                  <input
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="Breakout, NY session, Gold"
-                    className={inputCls}
-                    disabled={saving}
-                  />
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!saving) {
+                            setStrategyOpen((v) => !v);
+                            setTimeframeOpen(false);
+                            setSessionOpen(false);
+                          }
+                        }}
+                        disabled={saving}
+                        className={[
+                          "w-full rounded-2xl border px-4 py-3 pr-10 text-left text-sm outline-none transition-all",
+                          "bg-zinc-900/60 border-zinc-700 hover:bg-zinc-900/80",
+                          "focus:ring-2 focus:ring-zinc-600/40",
+                          strategy ? "text-white" : "text-zinc-500",
+                          saving ? "opacity-70 cursor-not-allowed" : "",
+                        ].join(" ")}
+                      >
+                        {strategy || "Select strategy"}
+                      </button>
+
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                        <ChevronDown
+                          size={18}
+                          className={`transition-transform duration-200 ${strategyOpen ? "rotate-180" : ""}`}
+                        />
+                      </span>
+
+                      {strategyOpen && (
+                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+                          {strategies.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setStrategy(item);
+                                setStrategyOpen(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between px-4 py-3 text-sm transition",
+                                "text-zinc-200 hover:bg-white/5",
+                                strategy === item ? "bg-white/5" : "",
+                              ].join(" ")}
+                            >
+                              <span>{item}</span>
+                              {strategy === item && (
+                                <Check size={16} className="text-emerald-300" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!saving) {
+                            setTimeframeOpen((v) => !v);
+                            setStrategyOpen(false);
+                            setSessionOpen(false);
+                          }
+                        }}
+                        disabled={saving}
+                        className={[
+                          "w-full rounded-2xl border px-4 py-3 pr-10 text-left text-sm outline-none transition-all",
+                          "bg-zinc-900/60 border-zinc-700 hover:bg-zinc-900/80",
+                          "focus:ring-2 focus:ring-zinc-600/40",
+                          timeframe ? "text-white" : "text-zinc-500",
+                          saving ? "opacity-70 cursor-not-allowed" : "",
+                        ].join(" ")}
+                      >
+                        {timeframe || "Select timeframe"}
+                      </button>
+
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                        <ChevronDown
+                          size={18}
+                          className={`transition-transform duration-200 ${timeframeOpen ? "rotate-180" : ""}`}
+                        />
+                      </span>
+
+                      {timeframeOpen && (
+                        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+                          {timeframes.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setTimeframe(item);
+                                setTimeframeOpen(false);
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between px-4 py-3 text-sm transition",
+                                "text-zinc-200 hover:bg-white/5",
+                                timeframe === item ? "bg-white/5" : "",
+                              ].join(" ")}
+                            >
+                              <span>{item}</span>
+                              {timeframe === item && (
+                                <Check size={16} className="text-emerald-300" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </Field>
 
                 {/* <div className="md:col-span-2">
